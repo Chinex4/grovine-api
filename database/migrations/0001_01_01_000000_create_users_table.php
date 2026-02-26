@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('phone')->nullable();
             $table->string('referral_code')->nullable();
+            $table->string('role')->default('user')->index();
+            $table->string('profile_picture')->nullable();
             $table->boolean('onboarding_completed')->default(false);
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();

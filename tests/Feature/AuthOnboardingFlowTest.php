@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Database\Seeders\PreferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -15,6 +16,11 @@ class AuthOnboardingFlowTest extends TestCase
         config()->set('otp.debug_expose_code', true);
 
         $this->seed(PreferenceSeeder::class);
+        User::factory()->create([
+            'name' => 'Referrer User',
+            'email' => 'referrer@example.com',
+            'referral_code' => 'GRV123',
+        ]);
 
         $signupResponse = $this->postJson('/api/auth/signup', [
             'name' => 'Jane Doe',

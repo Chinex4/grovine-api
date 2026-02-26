@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\JwtService;
 use App\Services\OtpService;
+use App\Services\ReferralService;
 use App\Services\UsernameService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class AuthController extends Controller
         private readonly OtpService $otpService,
         private readonly JwtService $jwtService,
         private readonly UsernameService $usernameService,
+        private readonly ReferralService $referralService,
     ) {
     }
 
@@ -29,8 +31,18 @@ class AuthController extends Controller
         ]);
 
         $email = strtolower($validated['email']);
+        $incomingReferralCode = isset($validated['referral_code']) ? strtoupper(trim((string) $validated['referral_code'])) : null;
 
         $user = User::query()->where('email', $email)->first();
+
+        $existingUserId = $user?->id;
+        $referrer = $this->referralService->findReferrerByCode($incomingReferralCode, $existingUserId);
+
+        if ($incomingReferralCode !== null && $incomingReferralCode !== '' && ! $referrer) {
+            return response()->json([
+                'message' => 'Invalid referral code.',
+            ], 422);
+        }
 
         if ($user && $user->email_verified_at) {
             return response()->json([
@@ -42,7 +54,7 @@ class AuthController extends Controller
             $user->update([
                 'name' => $validated['name'],
                 'phone' => $validated['phone'] ?? $user->phone,
-                'referral_code' => $validated['referral_code'] ?? $user->referral_code,
+                'referred_by_user_id' => $user->referred_by_user_id ?? $referrer?->id,
             ]);
         } else {
             $user = User::query()->create([
@@ -50,10 +62,14 @@ class AuthController extends Controller
                 'username' => $this->usernameService->generate($validated['name']),
                 'email' => $email,
                 'phone' => $validated['phone'] ?? null,
-                'referral_code' => $validated['referral_code'] ?? null,
+                'referral_code' => null,
+                'referred_by_user_id' => $referrer?->id,
+                'role' => User::ROLE_USER,
                 'password' => null,
             ]);
         }
+
+        $this->referralService->ensureUserReferralCode($user);
 
         $otpData = $this->otpService->issue($user, 'signup');
 
@@ -211,7 +227,9 @@ class AuthController extends Controller
 
     private function authResponsePayload(User $user, string $token, string $expiresAt): array
     {
-        $user->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug']);
+        $this->referralService->ensureUserReferralCode($user);
+        $user->refresh();
+        $user->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description']);
 
         return [
             'token_type' => 'Bearer',
@@ -221,8 +239,17 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'username' => $user->username,
+                'referral_code' => $user->referral_code,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'date_of_birth' => $user->date_of_birth?->toDateString(),
+                'address' => $user->address,
+                'role' => $user->role,
+                'chef_name' => $user->chef_name,
+                'chef_niche_id' => $user->chef_niche_id,
+                'chef_niche' => $user->chefNiche,
+                'profile_picture' => $user->profile_picture,
+                'wallet_balance' => (string) $user->wallet_balance,
                 'onboarding_completed' => $user->onboarding_completed,
                 'favorite_foods' => $user->favoriteFoods,
                 'cuisine_regions' => $user->cuisineRegions,

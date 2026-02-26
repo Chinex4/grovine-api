@@ -15,14 +15,32 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(PreferenceSeeder::class);
-
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'username' => 'test_user_1001',
-            'email' => 'test@example.com',
+        $this->call([
+            PreferenceSeeder::class,
+            ChefNicheSeeder::class,
+            CategorySeeder::class,
+            ProductSeeder::class,
+            AdSeeder::class,
         ]);
+
+        User::query()->updateOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'username' => 'test_user_1001',
+                'role' => User::ROLE_USER,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'admin@grovine.ng'],
+            [
+                'name' => 'Admin User',
+                'username' => 'admin_user_1001',
+                'role' => User::ROLE_ADMIN,
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }
