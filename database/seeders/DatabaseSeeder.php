@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             ChefNicheSeeder::class,
             CategorySeeder::class,
             ProductSeeder::class,
+            RecipeSeeder::class,
             AdSeeder::class,
         ]);
 

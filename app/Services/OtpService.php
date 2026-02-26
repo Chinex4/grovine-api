@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Mail\OtpCodeMail;
 use App\Models\OtpCode;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class OtpService
 {
@@ -38,6 +41,27 @@ class OtpService
             'code_hash' => hash('sha256', $plainCode),
             'expires_at' => now()->addMinutes((int) config('otp.expiry_minutes', 10)),
         ]);
+
+        try {
+            Mail::to($user->email)->send(new OtpCodeMail(
+                code: $plainCode,
+                purpose: $purpose,
+                expiresAt: $otp->expires_at,
+            ));
+        } catch (Throwable $exception) {
+            $otp->delete();
+
+            Log::error('Failed to send Grovine OTP email', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'purpose' => $purpose,
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'otp' => ['Unable to send OTP email right now. Please try again.'],
+            ]);
+        }
 
         Log::info('Grovine OTP generated', [
             'user_id' => $user->id,

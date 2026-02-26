@@ -1,0 +1,611 @@
+{
+  "info": {
+    "name": "Grovine API",
+    "description": "Complete Postman collection for Grovine backend API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+2348012345678\",\n  \"referral_code\": \"\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/signup"
+          }
+        },
+        {
+          "name": "Verify Signup OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.access_token) {",
+                  "  pm.collectionVariables.set('token', json.data.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"12345\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/verify-signup-otp"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Verify Login OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.access_token) {",
+                  "  pm.collectionVariables.set('token', json.data.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"12345\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/verify-login-otp"
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"purpose\": \"login\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/resend-otp"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        { "name": "Favorite Foods", "request": { "method": "GET", "url": "{{base_url}}/api/preferences/favorite-foods" } },
+        { "name": "Cuisine Regions", "request": { "method": "GET", "url": "{{base_url}}/api/preferences/cuisine-regions" } },
+        { "name": "Categories", "request": { "method": "GET", "url": "{{base_url}}/api/categories" } },
+        { "name": "Chef Niches", "request": { "method": "GET", "url": "{{base_url}}/api/niches" } },
+        { "name": "Products", "request": { "method": "GET", "url": "{{base_url}}/api/products" } },
+        { "name": "Search (legacy)", "request": { "method": "GET", "url": "{{base_url}}/api/search?q=grape" } },
+        { "name": "Product Search", "request": { "method": "GET", "url": "{{base_url}}/api/products/search?q=grape" } },
+        { "name": "Recommended Products", "request": { "method": "GET", "url": "{{base_url}}/api/products/recommended" } },
+        { "name": "Rush Hour Offers", "request": { "method": "GET", "url": "{{base_url}}/api/products/rush-hour-offers" } },
+        { "name": "Recipes", "request": { "method": "GET", "url": "{{base_url}}/api/recipes?q=egusi" } },
+        { "name": "Recommended Recipes", "request": { "method": "GET", "url": "{{base_url}}/api/recipes/recommended" } },
+        { "name": "Quick Recipes", "request": { "method": "GET", "url": "{{base_url}}/api/recipes/quick" } },
+        { "name": "Recipe Details", "request": { "method": "GET", "url": "{{base_url}}/api/recipes/{{recipe_id}}" } },
+        { "name": "Ads", "request": { "method": "GET", "url": "{{base_url}}/api/ads" } },
+        { "name": "Public Chef Profile", "request": { "method": "GET", "url": "{{base_url}}/api/chefs/{{chef_username}}" } },
+        {
+          "name": "Paystack Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Paystack-Signature", "value": "{{paystack_signature}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"charge.success\",\n  \"data\": {\n    \"reference\": \"GRV-TEST-REF\",\n    \"status\": \"success\"\n  }\n}"
+            },
+            "url": "{{base_url}}/api/payments/paystack/webhook"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{token}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Set Onboarding Preferences",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"favorite_food_ids\": [\"{{favorite_food_id_1}}\", \"{{favorite_food_id_2}}\"],\n  \"cuisine_region_ids\": [\"{{cuisine_region_id_1}}\", \"{{cuisine_region_id_2}}\"]\n}"
+            },
+            "url": "{{base_url}}/api/onboarding/preferences"
+          }
+        },
+        { "name": "Me", "request": { "method": "GET", "url": "{{base_url}}/api/user/me" } },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"username\": \"john_updated\",\n  \"phone\": \"+2348019990000\",\n  \"email\": \"john.updated@example.com\",\n  \"date_of_birth\": \"1995-04-12\",\n  \"address\": \"Lagos, Nigeria\"\n}"
+            },
+            "url": "{{base_url}}/api/user/me"
+          }
+        },
+        {
+          "name": "Upload Profile Picture",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "profile_picture", "type": "file", "src": "" }
+              ]
+            },
+            "url": "{{base_url}}/api/user/profile-picture"
+          }
+        },
+        { "name": "Delete Account", "request": { "method": "DELETE", "url": "{{base_url}}/api/user/me" } },
+        {
+          "name": "Become Chef",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chef_name\": \"Chef Richard\",\n  \"chef_niche_id\": \"{{chef_niche_id}}\"\n}"
+            },
+            "url": "{{base_url}}/api/chef/become"
+          }
+        },
+
+        { "name": "My Bookmarked Recipes", "request": { "method": "GET", "url": "{{base_url}}/api/recipes/bookmarks" } },
+        { "name": "Bookmark Recipe", "request": { "method": "POST", "url": "{{base_url}}/api/recipes/{{recipe_id}}/bookmark" } },
+        { "name": "Unbookmark Recipe", "request": { "method": "DELETE", "url": "{{base_url}}/api/recipes/{{recipe_id}}/bookmark" } },
+        {
+          "name": "Add Recipe Ingredients To Cart",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ingredient_ids\": [\"{{recipe_ingredient_id_1}}\", \"{{recipe_ingredient_id_2}}\"],\n  \"quantity_multiplier\": 1\n}"
+            },
+            "url": "{{base_url}}/api/recipes/{{recipe_id}}/ingredients/add-to-cart"
+          }
+        },
+
+        { "name": "Cart", "request": { "method": "GET", "url": "{{base_url}}/api/cart" } },
+        {
+          "name": "Add Cart Item",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{product_id}}\",\n  \"quantity\": 2\n}"
+            },
+            "url": "{{base_url}}/api/cart/items"
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 3\n}" },
+            "url": "{{base_url}}/api/cart/items/{{cart_item_id}}"
+          }
+        },
+        { "name": "Remove Cart Item", "request": { "method": "DELETE", "url": "{{base_url}}/api/cart/items/{{cart_item_id}}" } },
+        { "name": "Clear Cart", "request": { "method": "DELETE", "url": "{{base_url}}/api/cart" } },
+
+        {
+          "name": "Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{checkout_idempotency_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"paystack\",\n  \"delivery_address\": \"5 Banana Street, Lagos\",\n  \"rider_note\": \"Ring the bell\",\n  \"delivery_type\": \"immediate\"\n}"
+            },
+            "url": "{{base_url}}/api/checkout"
+          }
+        },
+        {
+          "name": "Verify Paystack Payment",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"reference\": \"{{payment_reference}}\"\n}" },
+            "url": "{{base_url}}/api/payments/paystack/verify"
+          }
+        },
+
+        {
+          "name": "Initialize Wallet Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{wallet_deposit_idempotency_key}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 1000\n}" },
+            "url": "{{base_url}}/api/wallet/deposits/initialize"
+          }
+        },
+        {
+          "name": "Verify Wallet Deposit",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"reference\": \"{{wallet_reference}}\"\n}" },
+            "url": "{{base_url}}/api/wallet/deposits/verify"
+          }
+        },
+        { "name": "List Nigerian Banks", "request": { "method": "GET", "url": "{{base_url}}/api/wallet/banks/nigeria" } },
+        {
+          "name": "Verify Bank Account",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"bank_code\": \"044\",\n  \"account_number\": \"0123456789\"\n}" },
+            "url": "{{base_url}}/api/wallet/verify-account"
+          }
+        },
+        {
+          "name": "Withdraw From Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{wallet_withdrawal_idempotency_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1200,\n  \"bank_code\": \"044\",\n  \"account_number\": \"0123456789\",\n  \"account_name\": \"John Doe\",\n  \"reason\": \"Withdrawal test\"\n}"
+            },
+            "url": "{{base_url}}/api/wallet/withdrawals"
+          }
+        },
+        { "name": "Wallet Transactions", "request": { "method": "GET", "url": "{{base_url}}/api/wallet/transactions?limit=20" } },
+        { "name": "Wallet Balance", "request": { "method": "GET", "url": "{{base_url}}/api/wallet/balance" } },
+
+        { "name": "Orders", "request": { "method": "GET", "url": "{{base_url}}/api/orders?bucket=all" } },
+        { "name": "Order Details", "request": { "method": "GET", "url": "{{base_url}}/api/orders/{{order_id}}" } },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"DELIVERED\"\n}" },
+            "url": "{{base_url}}/api/orders/{{order_id}}/status"
+          }
+        },
+
+        { "name": "Referrals", "request": { "method": "GET", "url": "{{base_url}}/api/referrals" } },
+
+        { "name": "Notifications", "request": { "method": "GET", "url": "{{base_url}}/api/notifications?limit=30" } },
+        { "name": "Unread Count", "request": { "method": "GET", "url": "{{base_url}}/api/notifications/unread-count" } },
+        { "name": "Mark Notification Read", "request": { "method": "PATCH", "url": "{{base_url}}/api/notifications/{{notification_id}}/read" } },
+        { "name": "Mark All Notifications Read", "request": { "method": "PATCH", "url": "{{base_url}}/api/notifications/read-all" } },
+        {
+          "name": "Register Device Token",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"android\",\n  \"token\": \"your-device-token\",\n  \"device_name\": \"Pixel 8\"\n}"
+            },
+            "url": "{{base_url}}/api/notifications/device-tokens"
+          }
+        },
+        { "name": "Remove Device Token", "request": { "method": "DELETE", "url": "{{base_url}}/api/notifications/device-tokens/{{device_token_id}}" } }
+      ]
+    },
+    {
+      "name": "Admin",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{admin_token}}", "type": "string" }
+        ]
+      },
+      "item": [
+        { "name": "Admin Ads", "request": { "method": "GET", "url": "{{base_url}}/api/admin/ads" } },
+        {
+          "name": "Create Ad",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Launch Promo", "type": "text" },
+                { "key": "image", "type": "file", "src": "" },
+                { "key": "link", "value": "https://example.com/promo", "type": "text" },
+                { "key": "sort_order", "value": "1", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/admin/ads"
+          }
+        },
+        {
+          "name": "Update Ad",
+          "request": {
+            "method": "PATCH",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Updated Promo", "type": "text" },
+                { "key": "is_active", "value": "true", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/admin/ads/{{ad_id}}"
+          }
+        },
+        { "name": "Delete Ad", "request": { "method": "DELETE", "url": "{{base_url}}/api/admin/ads/{{ad_id}}" } },
+
+        { "name": "Admin Categories", "request": { "method": "GET", "url": "{{base_url}}/api/admin/categories" } },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Fruits", "type": "text" },
+                { "key": "description", "value": "Fresh fruits", "type": "text" },
+                { "key": "image", "type": "file", "src": "" },
+                { "key": "sort_order", "value": "1", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/admin/categories"
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PATCH",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Updated Fruits", "type": "text" },
+                { "key": "description", "value": "Updated", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/admin/categories/{{category_id}}"
+          }
+        },
+        { "name": "Delete Category", "request": { "method": "DELETE", "url": "{{base_url}}/api/admin/categories/{{category_id}}" } },
+
+        { "name": "Admin Products", "request": { "method": "GET", "url": "{{base_url}}/api/admin/products" } },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Grape Basket", "type": "text" },
+                { "key": "description", "value": "Fresh grape basket", "type": "text" },
+                { "key": "image", "type": "file", "src": "" },
+                { "key": "price", "value": "4800.79", "type": "text" },
+                { "key": "category_id", "value": "{{category_id}}", "type": "text" },
+                { "key": "stock", "value": "50", "type": "text" },
+                { "key": "discount", "value": "0", "type": "text" },
+                { "key": "is_recommended", "value": "true", "type": "text" },
+                { "key": "is_rush_hour_offer", "value": "true", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/admin/products"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PATCH",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Updated Product Name", "type": "text" },
+                { "key": "stock", "value": "100", "type": "text" },
+                { "key": "discount", "value": "200", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/admin/products/{{product_id}}"
+          }
+        },
+        { "name": "Delete Product", "request": { "method": "DELETE", "url": "{{base_url}}/api/admin/products/{{product_id}}" } },
+
+        {
+          "name": "Send Admin Notification",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Fast Sale\",\n  \"message\": \"Fresh products now discounted.\",\n  \"category\": \"ADMIN\",\n  \"channels\": [\"all\"],\n  \"audience\": \"roles\",\n  \"roles\": [\"user\"],\n  \"action_url\": \"https://app.grovine.ng/offers\"\n}"
+            },
+            "url": "{{base_url}}/api/admin/notifications/send"
+          }
+        },
+
+        { "name": "Admin Niches", "request": { "method": "GET", "url": "{{base_url}}/api/admin/niches" } },
+        {
+          "name": "Create Niche",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Soups & Stews\",\n  \"description\": \"Soup niche\",\n  \"sort_order\": 1\n}" },
+            "url": "{{base_url}}/api/admin/niches"
+          }
+        },
+        {
+          "name": "Update Niche",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Niche\",\n  \"is_active\": true\n}" },
+            "url": "{{base_url}}/api/admin/niches/{{chef_niche_id}}"
+          }
+        },
+        { "name": "Delete Niche", "request": { "method": "DELETE", "url": "{{base_url}}/api/admin/niches/{{chef_niche_id}}" } },
+
+        { "name": "Admin Recipes", "request": { "method": "GET", "url": "{{base_url}}/api/admin/recipes?status=PENDING_APPROVAL" } },
+        {
+          "name": "Review Recipe (Approve)",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"action\": \"approve\",\n  \"is_recommended\": true,\n  \"is_quick_recipe\": false\n}" },
+            "url": "{{base_url}}/api/admin/recipes/{{recipe_id}}/review"
+          }
+        },
+        {
+          "name": "Review Recipe (Reject)",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"action\": \"reject\",\n  \"reason\": \"Please improve video quality.\"\n}" },
+            "url": "{{base_url}}/api/admin/recipes/{{recipe_id}}/review"
+          }
+        },
+        { "name": "Delete Recipe", "request": { "method": "DELETE", "url": "{{base_url}}/api/admin/recipes/{{recipe_id}}" } }
+      ]
+    },
+    {
+      "name": "Chef",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{chef_token}}", "type": "string" }
+        ]
+      },
+      "item": [
+        { "name": "My Recipes", "request": { "method": "GET", "url": "{{base_url}}/api/chef/recipes?status=DRAFT" } },
+        {
+          "name": "Create Recipe (multi-step final submit)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "video", "type": "file", "src": "" },
+                { "key": "cover_image", "type": "file", "src": "" },
+                { "key": "title", "value": "Egusi Soup With Chicken", "type": "text" },
+                { "key": "short_description", "value": "Short preview description", "type": "text" },
+                { "key": "instructions", "value": "Step 1...\\nStep 2...\\nStep 3...", "type": "text" },
+                { "key": "duration_seconds", "value": "900", "type": "text" },
+                { "key": "servings", "value": "2", "type": "text" },
+                { "key": "estimated_cost", "value": "20000", "type": "text" },
+                { "key": "is_quick_recipe", "value": "false", "type": "text" },
+                { "key": "ingredients[0][item_text]", "value": "2 red onions, diced", "type": "text" },
+                { "key": "ingredients[0][product_id]", "value": "{{product_id}}", "type": "text" },
+                { "key": "ingredients[0][cart_quantity]", "value": "2", "type": "text" },
+                { "key": "ingredients[1][item_text]", "value": "1 tsp paprika", "type": "text" },
+                { "key": "ingredients[1][cart_quantity]", "value": "1", "type": "text" },
+                { "key": "submit", "value": "true", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/chef/recipes"
+          }
+        },
+        { "name": "My Recipe Details", "request": { "method": "GET", "url": "{{base_url}}/api/chef/recipes/{{recipe_id}}" } },
+        {
+          "name": "Update Recipe",
+          "request": {
+            "method": "PATCH",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Updated Recipe Title", "type": "text" },
+                { "key": "short_description", "value": "Updated short description", "type": "text" },
+                { "key": "submit", "value": "true", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/api/chef/recipes/{{recipe_id}}"
+          }
+        },
+        { "name": "Submit Existing Recipe", "request": { "method": "POST", "url": "{{base_url}}/api/chef/recipes/{{recipe_id}}/submit" } },
+        { "name": "Delete My Recipe", "request": { "method": "DELETE", "url": "{{base_url}}/api/chef/recipes/{{recipe_id}}" } }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000" },
+    { "key": "token", "value": "" },
+    { "key": "admin_token", "value": "" },
+    { "key": "chef_token", "value": "" },
+    { "key": "chef_username", "value": "chef_candidate_123" },
+    { "key": "recipe_id", "value": "" },
+    { "key": "recipe_ingredient_id_1", "value": "" },
+    { "key": "recipe_ingredient_id_2", "value": "" },
+    { "key": "product_id", "value": "" },
+    { "key": "category_id", "value": "" },
+    { "key": "chef_niche_id", "value": "" },
+    { "key": "cart_item_id", "value": "" },
+    { "key": "order_id", "value": "" },
+    { "key": "payment_reference", "value": "" },
+    { "key": "wallet_reference", "value": "" },
+    { "key": "notification_id", "value": "" },
+    { "key": "device_token_id", "value": "" },
+    { "key": "ad_id", "value": "" },
+    { "key": "favorite_food_id_1", "value": "" },
+    { "key": "favorite_food_id_2", "value": "" },
+    { "key": "cuisine_region_id_1", "value": "" },
+    { "key": "cuisine_region_id_2", "value": "" },
+    { "key": "checkout_idempotency_key", "value": "checkout-001" },
+    { "key": "wallet_deposit_idempotency_key", "value": "wallet-deposit-001" },
+    { "key": "wallet_withdrawal_idempotency_key", "value": "wallet-withdrawal-001" },
+    { "key": "paystack_signature", "value": "" }
+  ]
+}
