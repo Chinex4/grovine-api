@@ -108,6 +108,12 @@ class User extends Authenticatable
         return $this->belongsTo(ChefNiche::class, 'chef_niche_id');
     }
 
+    public function chefNiches(): BelongsToMany
+    {
+        return $this->belongsToMany(ChefNiche::class, 'chef_niche_user')
+            ->withTimestamps();
+    }
+
     public function referrals(): HasMany
     {
         return $this->hasMany(User::class, 'referred_by_user_id');

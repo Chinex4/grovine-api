@@ -198,7 +198,7 @@
             "header": [ { "key": "Content-Type", "value": "application/json" } ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"chef_name\": \"Chef Richard\",\n  \"chef_niche_id\": \"{{chef_niche_id}}\"\n}"
+              "raw": "{\n  \"chef_name\": \"Chef Richard\",\n  \"chef_niche_ids\": [\"{{chef_niche_id}}\", \"{{chef_niche_id_2}}\"]\n}"
             },
             "url": "{{base_url}}/api/chef/become"
           }
@@ -592,6 +592,7 @@
     { "key": "product_id", "value": "" },
     { "key": "category_id", "value": "" },
     { "key": "chef_niche_id", "value": "" },
+    { "key": "chef_niche_id_2", "value": "" },
     { "key": "cart_item_id", "value": "" },
     { "key": "order_id", "value": "" },
     { "key": "payment_reference", "value": "" },

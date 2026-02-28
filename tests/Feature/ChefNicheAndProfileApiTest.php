@@ -95,6 +95,13 @@ class ChefNicheAndProfileApiTest extends TestCase
             'is_active' => true,
             'sort_order' => 1,
         ]);
+        $secondaryNiche = ChefNiche::query()->create([
+            'name' => 'Desserts',
+            'slug' => 'desserts',
+            'description' => 'Sweet dishes',
+            'is_active' => true,
+            'sort_order' => 2,
+        ]);
 
         $user = User::factory()->create([
             'name' => 'Chef Candidate',
@@ -108,13 +115,14 @@ class ChefNicheAndProfileApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ])->postJson('/api/chef/become', [
             'chef_name' => 'Chef K',
-            'chef_niche_id' => $niche->id,
+            'chef_niche_ids' => [$niche->id, $secondaryNiche->id],
         ])
             ->assertOk()
             ->assertJsonPath('message', 'Chef profile updated successfully.')
             ->assertJsonPath('data.role', User::ROLE_CHEF)
             ->assertJsonPath('data.chef_name', 'Chef K')
-            ->assertJsonPath('data.chef_niche.id', $niche->id);
+            ->assertJsonPath('data.chef_niche.id', $niche->id)
+            ->assertJsonCount(2, 'data.chef_niches');
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
@@ -122,13 +130,22 @@ class ChefNicheAndProfileApiTest extends TestCase
             'chef_name' => 'Chef K',
             'chef_niche_id' => $niche->id,
         ]);
+        $this->assertDatabaseHas('chef_niche_user', [
+            'user_id' => $user->id,
+            'chef_niche_id' => $niche->id,
+        ]);
+        $this->assertDatabaseHas('chef_niche_user', [
+            'user_id' => $user->id,
+            'chef_niche_id' => $secondaryNiche->id,
+        ]);
 
         $this->getJson('/api/chefs/chef_candidate_123')
             ->assertOk()
             ->assertJsonPath('message', 'Chef profile fetched successfully.')
             ->assertJsonPath('data.username', 'chef_candidate_123')
             ->assertJsonPath('data.chef_name', 'Chef K')
-            ->assertJsonPath('data.chef_niche.slug', 'grilling');
+            ->assertJsonPath('data.chef_niche.slug', 'grilling')
+            ->assertJsonCount(2, 'data.chef_niches')
+            ->assertJsonFragment(['slug' => 'desserts']);
     }
 }
-

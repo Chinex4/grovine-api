@@ -229,7 +229,7 @@ class AuthController extends Controller
     {
         $this->referralService->ensureUserReferralCode($user);
         $user->refresh();
-        $user->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description']);
+        $user->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description', 'chefNiches:id,name,slug,description']);
 
         return [
             'token_type' => 'Bearer',
@@ -248,6 +248,7 @@ class AuthController extends Controller
                 'chef_name' => $user->chef_name,
                 'chef_niche_id' => $user->chef_niche_id,
                 'chef_niche' => $user->chefNiche,
+                'chef_niches' => $user->chefNiches,
                 'profile_picture' => $user->profile_picture,
                 'wallet_balance' => (string) $user->wallet_balance,
                 'onboarding_completed' => $user->onboarding_completed,

@@ -22,7 +22,7 @@ class UserProfileController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
-        $user->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description']);
+        $user->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description', 'chefNiches:id,name,slug,description']);
 
         return response()->json([
             'message' => 'User profile fetched successfully.',
@@ -71,7 +71,7 @@ class UserProfileController extends Controller
 
         return response()->json([
             'message' => 'Profile updated successfully.',
-            'data' => new UserResource(($freshUser?->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description']) ?? $user)),
+            'data' => new UserResource(($freshUser?->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description', 'chefNiches:id,name,slug,description']) ?? $user)),
         ]);
     }
 
@@ -124,7 +124,7 @@ class UserProfileController extends Controller
 
         return response()->json([
             'message' => 'Profile picture uploaded successfully.',
-            'data' => new UserResource(($freshUser?->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description']) ?? $user)),
+            'data' => new UserResource(($freshUser?->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description', 'chefNiches:id,name,slug,description']) ?? $user)),
         ]);
     }
 

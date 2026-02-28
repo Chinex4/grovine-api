@@ -42,6 +42,28 @@ class UserResource extends JsonResource
                     'description' => $this->chefNiche->description,
                 ];
             }),
+            'chef_niches' => $this->when(
+                $this->relationLoaded('chefNiches') || $this->relationLoaded('chefNiche'),
+                function (): array {
+                    $niches = $this->relationLoaded('chefNiches')
+                        ? $this->chefNiches
+                        : collect();
+
+                    if ($niches->isEmpty() && $this->relationLoaded('chefNiche') && $this->chefNiche) {
+                        $niches = collect([$this->chefNiche]);
+                    }
+
+                    return $niches
+                        ->map(fn ($niche): array => [
+                            'id' => $niche->id,
+                            'name' => $niche->name,
+                            'slug' => $niche->slug,
+                            'description' => $niche->description,
+                        ])
+                        ->values()
+                        ->all();
+                }
+            ),
             'chef_profile_share_url' => $this->role === \App\Models\User::ROLE_CHEF
                 ? url('/api/chefs/'.$this->username)
                 : null,
@@ -56,4 +78,3 @@ class UserResource extends JsonResource
         ];
     }
 }
-

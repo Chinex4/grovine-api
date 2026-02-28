@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ChefNiche extends Model
@@ -34,5 +35,10 @@ class ChefNiche extends Model
     {
         return $this->hasMany(User::class, 'chef_niche_id');
     }
-}
 
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'chef_niche_user')
+            ->withTimestamps();
+    }
+}
