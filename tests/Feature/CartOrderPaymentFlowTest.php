@@ -20,6 +20,7 @@ class CartOrderPaymentFlowTest extends TestCase
         config()->set('paystack.secret_key', 'paystack_test_secret');
         config()->set('paystack.webhook_secret', 'paystack_test_secret');
         config()->set('paystack.callback_url', 'https://app.grovine.ng/paystack/callback');
+        $baseUrl = rtrim((string) config('app.url'), '/');
 
         $user = User::factory()->create([
             'email' => 'buyer@example.com',
@@ -121,7 +122,14 @@ class CartOrderPaymentFlowTest extends TestCase
             ->assertJsonPath('data.0.id', $orderId)
             ->assertJsonPath('data.0.status', Order::STATUS_AWAITING_PAYMENT)
             ->assertJsonPath('data.0.payment_reference', $reference)
-            ->assertJsonPath('data.0.payment_authorization_url', $authorizationUrl);
+            ->assertJsonPath('data.0.payment_authorization_url', $authorizationUrl)
+            ->assertJsonPath('data.0.items.0.product_image_url', $baseUrl.'/storage/products/grape-pack.jpg');
+
+        $this->withHeaders(['Authorization' => 'Bearer '.$token])
+            ->getJson('/api/orders/'.$orderId)
+            ->assertOk()
+            ->assertJsonPath('data.id', $orderId)
+            ->assertJsonPath('data.items.0.product_image_url', $baseUrl.'/storage/products/grape-pack.jpg');
 
         $webhookPayload = [
             'event' => 'charge.success',
