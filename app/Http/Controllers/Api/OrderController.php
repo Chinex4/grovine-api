@@ -18,7 +18,7 @@ class OrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'bucket' => ['nullable', 'in:ongoing,completed,canceled,all'],
+            'bucket' => ['nullable', 'in:ongoing,completed,cancelled,all'],
             'user_id' => ['nullable', 'uuid', 'exists:users,id'],
         ]);
 
@@ -26,7 +26,7 @@ class OrderController extends Controller
         $viewer = $request->user();
 
         $query = Order::query()
-            ->with(['items', 'user:id,name,email,role'])
+            ->with(['items', 'user:id,name,email,role', 'latestPaystackPayment'])
             ->orderByDesc('created_at');
 
         if ($viewer->hasRole('admin', 'chef')) {
@@ -40,12 +40,18 @@ class OrderController extends Controller
         $this->applyBucketFilter($query, $bucket);
 
         $orders = $query->get()->map(function (Order $order): array {
+            $pendingPayment = $this->pendingPaystackPaymentData($order);
+
             return [
                 'id' => $order->id,
                 'order_number' => $order->order_number,
                 'status' => $order->status,
                 'payment_status' => $order->payment_status,
                 'payment_method' => $order->payment_method,
+                'payment_reference' => $pendingPayment['reference'],
+                'payment_authorization_url' => $pendingPayment['authorization_url'],
+                'payment_access_code' => $pendingPayment['access_code'],
+                'payment_transaction_status' => $pendingPayment['status'],
                 'bucket' => $order->bucket(),
                 'subtotal' => $order->subtotal,
                 'total' => $order->total,
@@ -71,11 +77,17 @@ class OrderController extends Controller
             ], 403);
         }
 
-        $order->loadMissing(['items', 'payments', 'user:id,name,email,role']);
+        $order->loadMissing(['items', 'payments', 'latestPaystackPayment', 'user:id,name,email,role']);
+        $pendingPayment = $this->pendingPaystackPaymentData($order);
+        $data = $order->toArray();
+        $data['payment_reference'] = $pendingPayment['reference'];
+        $data['payment_authorization_url'] = $pendingPayment['authorization_url'];
+        $data['payment_access_code'] = $pendingPayment['access_code'];
+        $data['payment_transaction_status'] = $pendingPayment['status'];
 
         return response()->json([
             'message' => 'Order fetched successfully.',
-            'data' => $order,
+            'data' => $data,
         ]);
     }
 
@@ -207,5 +219,38 @@ class OrderController extends Controller
             ],
             channels: [NotificationService::CHANNEL_IN_APP, NotificationService::CHANNEL_PUSH],
         );
+    }
+
+    /**
+     * @return array{reference:?string,authorization_url:?string,access_code:?string,status:?string}
+     */
+    private function pendingPaystackPaymentData(Order $order): array
+    {
+        if ($order->status !== Order::STATUS_AWAITING_PAYMENT || $order->payment_method !== Order::PAYMENT_METHOD_PAYSTACK) {
+            return [
+                'reference' => null,
+                'authorization_url' => null,
+                'access_code' => null,
+                'status' => null,
+            ];
+        }
+
+        $transaction = $order->latestPaystackPayment;
+
+        if (! $transaction) {
+            return [
+                'reference' => null,
+                'authorization_url' => null,
+                'access_code' => null,
+                'status' => null,
+            ];
+        }
+
+        return [
+            'reference' => $transaction->reference,
+            'authorization_url' => data_get($transaction->gateway_response, 'data.authorization_url'),
+            'access_code' => data_get($transaction->gateway_response, 'data.access_code'),
+            'status' => $transaction->status,
+        ];
     }
 }

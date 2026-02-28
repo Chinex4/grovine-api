@@ -93,8 +93,10 @@ class CartOrderPaymentFlowTest extends TestCase
 
         $orderId = (string) $checkout->json('data.order.id');
         $reference = (string) $checkout->json('data.payment.reference');
+        $authorizationUrl = (string) $checkout->json('data.payment.authorization_url');
 
         $this->assertNotEmpty($reference);
+        $this->assertNotEmpty($authorizationUrl);
 
         $this->withHeaders([
             'Authorization' => 'Bearer '.$token,
@@ -112,6 +114,14 @@ class CartOrderPaymentFlowTest extends TestCase
             ->getJson('/api/cart')
             ->assertOk()
             ->assertJsonPath('data.item_count', 0);
+
+        $this->withHeaders(['Authorization' => 'Bearer '.$token])
+            ->getJson('/api/orders?bucket=ongoing')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $orderId)
+            ->assertJsonPath('data.0.status', Order::STATUS_AWAITING_PAYMENT)
+            ->assertJsonPath('data.0.payment_reference', $reference)
+            ->assertJsonPath('data.0.payment_authorization_url', $authorizationUrl);
 
         $webhookPayload = [
             'event' => 'charge.success',
