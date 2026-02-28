@@ -125,6 +125,55 @@ class ProductController extends Controller
         ]);
     }
 
+    public function favorites(Request $request): JsonResponse
+    {
+        $products = $request->user()
+            ->favoriteProducts()
+            ->with(['category:id,name,slug'])
+            ->where('products.is_active', true)
+            ->whereHas('category', function (Builder $query): void {
+                $query->where('is_active', true);
+            })
+            ->orderByDesc('favorite_product_user.created_at')
+            ->get();
+
+        return response()->json([
+            'message' => 'Favorite products fetched successfully.',
+            'data' => $products,
+        ]);
+    }
+
+    public function toggleFavorite(Request $request, Product $product): JsonResponse
+    {
+        $product->loadMissing('category:id,is_active');
+
+        if (! $product->is_active || ! $product->category || ! $product->category->is_active) {
+            return response()->json([
+                'message' => 'Product not found.',
+            ], 404);
+        }
+
+        $user = $request->user();
+
+        $isFavorited = $user->favoriteProducts()
+            ->where('products.id', $product->id)
+            ->exists();
+
+        if ($isFavorited) {
+            $user->favoriteProducts()->detach($product->id);
+        } else {
+            $user->favoriteProducts()->syncWithoutDetaching([$product->id]);
+        }
+
+        return response()->json([
+            'message' => 'Product favorite status updated successfully.',
+            'data' => [
+                'product_id' => $product->id,
+                'is_favorited' => ! $isFavorited,
+            ],
+        ]);
+    }
+
     private function basePublicQuery(): Builder
     {
         return Product::query()

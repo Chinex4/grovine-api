@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ChefProfileController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\UserProfileController;
@@ -24,6 +25,9 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::post('/recipes/{recipe}/bookmark', [RecipeController::class, 'bookmark'])->whereUuid('recipe');
     Route::delete('/recipes/{recipe}/bookmark', [RecipeController::class, 'unbookmark'])->whereUuid('recipe');
     Route::post('/recipes/{recipe}/ingredients/add-to-cart', [RecipeController::class, 'addIngredientsToCart'])->whereUuid('recipe');
+
+    Route::get('/products/favorites', [ProductController::class, 'favorites']);
+    Route::post('/products/{product}/favorite', [ProductController::class, 'toggleFavorite'])->whereUuid('product');
 
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart/items', [CartController::class, 'addItem']);
@@ -54,4 +58,3 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::post('/notifications/device-tokens', [NotificationController::class, 'registerDeviceToken']);
     Route::delete('/notifications/device-tokens/{deviceToken}', [NotificationController::class, 'removeDeviceToken']);
 });
-

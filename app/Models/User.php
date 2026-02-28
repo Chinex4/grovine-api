@@ -185,4 +185,10 @@ class User extends Authenticatable
         return $this->belongsToMany(CuisineRegion::class, 'cuisine_region_user')
             ->withTimestamps();
     }
+
+    public function favoriteProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'favorite_product_user')
+            ->withTimestamps();
+    }
 }
