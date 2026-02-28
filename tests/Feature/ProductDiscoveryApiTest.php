@@ -158,4 +158,57 @@ class ProductDiscoveryApiTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.name', 'Grape');
     }
+
+    public function test_public_can_fetch_product_detail(): void
+    {
+        $baseUrl = rtrim((string) config('app.url'), '/');
+
+        $activeCategory = Category::query()->create([
+            'name' => 'Fruits',
+            'slug' => 'fruits',
+            'is_active' => true,
+        ]);
+
+        $inactiveCategory = Category::query()->create([
+            'name' => 'Inactive',
+            'slug' => 'inactive',
+            'is_active' => false,
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $activeCategory->id,
+            'name' => 'Grape',
+            'slug' => 'grape',
+            'description' => 'Sweet red grape',
+            'image_url' => 'products/grape.jpg',
+            'price' => 4800.79,
+            'stock' => 20,
+            'discount' => 100,
+            'is_active' => true,
+        ]);
+
+        $inactiveProduct = Product::query()->create([
+            'category_id' => $inactiveCategory->id,
+            'name' => 'Hidden Product',
+            'slug' => 'hidden-product',
+            'description' => 'Should not show',
+            'image_url' => 'products/hidden.jpg',
+            'price' => 1000,
+            'stock' => 4,
+            'discount' => 0,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/products/'.$product->id)
+            ->assertOk()
+            ->assertJsonPath('message', 'Product detail fetched successfully.')
+            ->assertJsonPath('data.id', $product->id)
+            ->assertJsonPath('data.name', 'Grape')
+            ->assertJsonPath('data.image_url', $baseUrl.'/storage/products/grape.jpg')
+            ->assertJsonPath('data.category.name', 'Fruits');
+
+        $this->getJson('/api/products/'.$inactiveProduct->id)
+            ->assertStatus(404)
+            ->assertJsonPath('message', 'Product not found.');
+    }
 }

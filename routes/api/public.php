@@ -22,6 +22,7 @@ Route::get('/search', [ProductController::class, 'search']);
 Route::get('/products/search', [ProductController::class, 'search']);
 Route::get('/products/recommended', [ProductController::class, 'recommended']);
 Route::get('/products/rush-hour-offers', [ProductController::class, 'rushHourOffers']);
+Route::get('/products/{product}', [ProductController::class, 'show'])->whereUuid('product');
 
 Route::get('/recipes', [RecipeController::class, 'index']);
 Route::get('/recipes/recommended', [RecipeController::class, 'recommended']);
@@ -31,4 +32,3 @@ Route::get('/recipes/{recipe}', [RecipeController::class, 'show'])->whereUuid('r
 Route::get('/ads', [AdController::class, 'index']);
 Route::get('/chefs/{username}', [ChefProfileController::class, 'show']);
 Route::post('/payments/paystack/webhook', [PaystackWebhookController::class, 'handle']);
-

@@ -1,0 +1,53 @@
+name: Deploy Laravel API to cPanel
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.CPANEL_SSH_KEY }}
+
+      - name: Trust host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Upload code
+        run: |
+          rsync -az --delete \
+            --exclude ".git" \
+            --exclude ".github" \
+            --exclude "node_modules" \
+            --exclude "vendor" \
+            -e "ssh -p ${{ secrets.CPANEL_PORT }}" \
+            ./ ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }}:${{ secrets.DEPLOY_PATH }}
+
+      - name: Run Laravel commands
+        run: |
+          ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} << EOF
+            set -e
+            cd "${{ secrets.DEPLOY_PATH }}"
+
+            # If composer exists on the server:
+            if command -v composer >/dev/null 2>&1; then
+              composer install --no-dev --prefer-dist --optimize-autoloader
+            fi
+
+            php artisan config:clear || true
+            php artisan route:clear || true
+            php artisan view:clear || true
+
+            php artisan config:cache || true
+            php artisan route:cache || true
+
+            php artisan migrate --force || true
+          EOF

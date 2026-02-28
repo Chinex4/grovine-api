@@ -79,6 +79,22 @@ class ProductController extends Controller
         ]);
     }
 
+    public function show(Product $product): JsonResponse
+    {
+        $product->loadMissing('category:id,name,slug,is_active');
+
+        if (! $product->is_active || ! $product->category || ! $product->category->is_active) {
+            return response()->json([
+                'message' => 'Product not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Product detail fetched successfully.',
+            'data' => $product,
+        ]);
+    }
+
     public function rushHourOffers(): JsonResponse
     {
         $now = now();

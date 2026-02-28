@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\NotificationService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -76,7 +78,13 @@ class UserProfileController extends Controller
     public function destroy(Request $request): JsonResponse
     {
         $user = $request->user();
-        $user->delete();
+        $profilePicture = $user->getRawOriginal('profile_picture');
+
+        $this->deleteUserWithRetry($user);
+
+        if ($profilePicture && ! str_starts_with($profilePicture, 'http://') && ! str_starts_with($profilePicture, 'https://')) {
+            Storage::disk('public')->delete($profilePicture);
+        }
 
         return response()->json([
             'message' => 'Account deleted successfully.',
@@ -118,5 +126,43 @@ class UserProfileController extends Controller
             'message' => 'Profile picture uploaded successfully.',
             'data' => new UserResource(($freshUser?->loadMissing(['favoriteFoods:id,name,slug', 'cuisineRegions:id,name,slug', 'chefNiche:id,name,slug,description']) ?? $user)),
         ]);
+    }
+
+    private function deleteUserWithRetry(User $user): void
+    {
+        $connection = $user->getConnectionName() ?: config('database.default');
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            try {
+                $user->delete();
+
+                return;
+            } catch (QueryException $exception) {
+                $isLastAttempt = $attempt === 1;
+
+                if ($isLastAttempt || ! $this->isMysqlReprepareError($exception)) {
+                    throw $exception;
+                }
+
+                DB::purge($connection);
+                DB::reconnect($connection);
+
+                $freshUser = User::query()->find($user->id);
+
+                if (! $freshUser) {
+                    return;
+                }
+
+                $user = $freshUser;
+            }
+        }
+    }
+
+    private function isMysqlReprepareError(QueryException $exception): bool
+    {
+        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
+        $message = strtolower($exception->getMessage());
+
+        return $driverCode === 1615 || str_contains($message, 'needs to be re-prepared');
     }
 }
