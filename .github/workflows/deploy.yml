@@ -11,7 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Match your server PHP version
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -31,6 +30,10 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Validate DEPLOY_PATH
+        run: |
+          test -n "${{ secrets.DEPLOY_PATH }}" || (echo "DEPLOY_PATH secret is missing" && exit 1)
+
       - name: Upload code (tar over SSH)
         run: |
           ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "mkdir -p '${{ secrets.DEPLOY_PATH }}'"
@@ -43,15 +46,15 @@ jobs:
             set -e
             cd "${DEPLOY_PATH}"
 
+            php artisan storage:link || true
+            chmod -R 775 storage bootstrap/cache || true
+
             php artisan config:clear || true
             php artisan route:clear || true
             php artisan view:clear || true
 
             php artisan config:cache || true
             php artisan route:cache || true
-
-            php artisan storage:link || true
-            chmod -R 775 storage bootstrap/cache || true
 
             php artisan migrate --force || true
           EOF
