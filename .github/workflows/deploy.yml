@@ -11,6 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer:v2
+
+      - name: Install dependencies (vendor)
+        run: |
+          composer install --no-dev --prefer-dist --optimize-autoloader
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -21,26 +31,20 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Upload code
+      - name: Upload code to server
         run: |
           rsync -az --delete \
             --exclude ".git" \
             --exclude ".github" \
             --exclude "node_modules" \
-            --exclude "vendor" \
             -e "ssh -p ${{ secrets.CPANEL_PORT }}" \
             ./ ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }}:${{ secrets.DEPLOY_PATH }}
 
-      - name: Run Laravel commands
+      - name: Run Laravel commands on server
         run: |
           ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} << EOF
             set -e
             cd "${{ secrets.DEPLOY_PATH }}"
-
-            # If composer exists on the server:
-            if command -v composer >/dev/null 2>&1; then
-              composer install --no-dev --prefer-dist --optimize-autoloader
-            fi
 
             php artisan config:clear || true
             php artisan route:clear || true
@@ -48,6 +52,10 @@ jobs:
 
             php artisan config:cache || true
             php artisan route:cache || true
+
+            php artisan storage:link || true
+
+            chmod -R 775 storage bootstrap/cache || true
 
             php artisan migrate --force || true
           EOF
