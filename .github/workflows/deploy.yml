@@ -11,15 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Match your server PHP version
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          php-version: "8.2"
           tools: composer:v2
 
       - name: Install dependencies (vendor)
-        run: |
-          composer install --no-dev --prefer-dist --optimize-autoloader
+        run: composer install --no-dev --prefer-dist --optimize-autoloader
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -31,23 +31,17 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Install rsync
-        run: sudo apt-get update && sudo apt-get install -y rsync
-
-      - name: Upload code to server
+      - name: Upload code (tar over SSH)
         run: |
-          rsync -az --delete \
-            --exclude ".git" \
-            --exclude ".github" \
-            --exclude "node_modules" \
-            -e "ssh -p ${{ secrets.CPANEL_PORT }}" \
-            ./ ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }}:${{ secrets.DEPLOY_PATH }}
+          ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "mkdir -p '${{ secrets.DEPLOY_PATH }}'"
+          tar --exclude=".git" --exclude=".github" --exclude="node_modules" --exclude=".env" -czf - . \
+            | ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "tar -xzf - -C '${{ secrets.DEPLOY_PATH }}'"
 
       - name: Run Laravel commands on server
         run: |
-          ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} << EOF
+          ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} << 'EOF'
             set -e
-            cd "${{ secrets.DEPLOY_PATH }}"
+            cd "${DEPLOY_PATH}"
 
             php artisan config:clear || true
             php artisan route:clear || true
@@ -57,8 +51,9 @@ jobs:
             php artisan route:cache || true
 
             php artisan storage:link || true
-
             chmod -R 775 storage bootstrap/cache || true
 
             php artisan migrate --force || true
           EOF
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
