@@ -124,6 +124,33 @@ class RecipeApiTest extends TestCase
             ->assertJsonPath('data.status', Recipe::STATUS_APPROVED)
             ->assertJsonPath('data.is_recommended', true);
 
+        $this->withHeaders([
+            'Authorization' => 'Bearer '.$adminToken,
+        ])->patchJson('/api/admin/recipes/'.$recipeId.'/features', [
+            'is_recommended' => false,
+            'is_quick_recipe' => false,
+        ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Recipe features updated successfully.')
+            ->assertJsonPath('data.is_recommended', false)
+            ->assertJsonPath('data.is_quick_recipe', false);
+
+        $this->assertDatabaseHas('recipes', [
+            'id' => $recipeId,
+            'is_recommended' => false,
+            'is_quick_recipe' => false,
+        ]);
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer '.$adminToken,
+        ])->patchJson('/api/admin/recipes/'.$recipeId.'/features', [
+            'is_recommended' => true,
+            'is_quick_recipe' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.is_recommended', true)
+            ->assertJsonPath('data.is_quick_recipe', true);
+
         Recipe::query()->create([
             'chef_id' => $chef->id,
             'status' => Recipe::STATUS_APPROVED,
@@ -261,4 +288,3 @@ class RecipeApiTest extends TestCase
         ])->assertStatus(403)->assertJsonPath('message', 'Forbidden.');
     }
 }
-

@@ -113,6 +113,55 @@ class AdminRecipeController extends Controller
         ]);
     }
 
+    public function updateFeatures(Request $request, Recipe $recipe): JsonResponse
+    {
+        $validated = $request->validate([
+            'is_recommended' => ['sometimes', 'boolean'],
+            'is_quick_recipe' => ['sometimes', 'boolean'],
+        ]);
+
+        if (! array_key_exists('is_recommended', $validated) && ! array_key_exists('is_quick_recipe', $validated)) {
+            return response()->json([
+                'message' => 'Provide at least one feature flag to update.',
+            ], 422);
+        }
+
+        if ($recipe->status !== Recipe::STATUS_APPROVED) {
+            return response()->json([
+                'message' => 'Only approved recipes can be marked as quick or recommended.',
+            ], 422);
+        }
+
+        $payload = [];
+
+        if (array_key_exists('is_recommended', $validated)) {
+            $payload['is_recommended'] = (bool) $validated['is_recommended'];
+        }
+
+        if (array_key_exists('is_quick_recipe', $validated)) {
+            $payload['is_quick_recipe'] = (bool) $validated['is_quick_recipe'];
+        }
+
+        $recipe->update($payload);
+
+        $this->notificationService->sendAccountActivity(
+            user: $recipe->chef()->firstOrFail(),
+            title: 'Recipe highlights updated',
+            message: 'Admin updated quick/recommended highlights for your recipe "'.$recipe->title.'".',
+            data: [
+                'recipe_id' => $recipe->id,
+                'is_recommended' => $recipe->is_recommended,
+                'is_quick_recipe' => $recipe->is_quick_recipe,
+            ],
+            channels: [NotificationService::CHANNEL_IN_APP, NotificationService::CHANNEL_PUSH],
+        );
+
+        return response()->json([
+            'message' => 'Recipe features updated successfully.',
+            'data' => new RecipeResource($recipe->fresh(['chef:id,name,chef_name,username,profile_picture,chef_niche_id', 'chef.chefNiche:id,name,slug', 'ingredients.product:id,name,image_url,price,discount,stock,is_active'])),
+        ]);
+    }
+
     public function destroy(Recipe $recipe): JsonResponse
     {
         $video = $recipe->getRawOriginal('video_url');
@@ -141,4 +190,3 @@ class AdminRecipeController extends Controller
         Storage::disk('public')->delete($path);
     }
 }
-

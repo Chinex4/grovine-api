@@ -33,6 +33,6 @@ Route::middleware(['auth.jwt', 'role:admin'])->prefix('admin')->group(function (
 
     Route::get('/recipes', [AdminRecipeController::class, 'index']);
     Route::patch('/recipes/{recipe}/review', [AdminRecipeController::class, 'review'])->whereUuid('recipe');
+    Route::patch('/recipes/{recipe}/features', [AdminRecipeController::class, 'updateFeatures'])->whereUuid('recipe');
     Route::delete('/recipes/{recipe}', [AdminRecipeController::class, 'destroy'])->whereUuid('recipe');
 });
-

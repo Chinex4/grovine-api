@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             RecipeSeeder::class,
             AdSeeder::class,
+            AdminAccountSeeder::class,
         ]);
 
         User::query()->updateOrCreate(
@@ -34,14 +35,5 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        User::query()->updateOrCreate(
-            ['email' => 'admin@grovine.ng'],
-            [
-                'name' => 'Admin User',
-                'username' => 'admin_user_1001',
-                'role' => User::ROLE_ADMIN,
-                'email_verified_at' => now(),
-            ]
-        );
     }
 }
