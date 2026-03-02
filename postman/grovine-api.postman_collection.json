@@ -519,6 +519,15 @@
             "url": "{{base_url}}/api/admin/recipes/{{recipe_id}}/review"
           }
         },
+        {
+          "name": "Update Recipe Features",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"is_recommended\": true,\n  \"is_quick_recipe\": true\n}" },
+            "url": "{{base_url}}/api/admin/recipes/{{recipe_id}}/features"
+          }
+        },
         { "name": "Delete Recipe", "request": { "method": "DELETE", "url": "{{base_url}}/api/admin/recipes/{{recipe_id}}" } }
       ]
     },

@@ -61,6 +61,8 @@ class AdminCatalogApiTest extends TestCase
             ->assertJsonPath('data.category.id', $categoryId);
 
         $productId = (string) $createProduct->json('data.id');
+        $productImageUrl = (string) $createProduct->json('data.image_url');
+        $this->assertStringStartsWith($baseUrl.'/storage/products/', $productImageUrl);
 
         $this->withHeaders([
             'Authorization' => 'Bearer '.$token,

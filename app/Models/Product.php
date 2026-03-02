@@ -82,6 +82,14 @@ class Product extends Model
             return $value;
         }
 
+        if (str_starts_with($value, '/storage/')) {
+            return url($value);
+        }
+
+        if (str_starts_with($value, 'storage/')) {
+            return url('/'.$value);
+        }
+
         return url(Storage::url($value));
     }
 
