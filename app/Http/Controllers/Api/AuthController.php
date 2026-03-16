@@ -94,6 +94,10 @@ class AuthController extends Controller
             ], 404);
         }
 
+        if ($blocked = $this->blockedAccountResponse($user)) {
+            return $blocked;
+        }
+
         $verified = $this->otpService->verify($user, 'signup', $validated['otp']);
 
         if (! $verified) {
@@ -130,6 +134,10 @@ class AuthController extends Controller
             ], 404);
         }
 
+        if ($blocked = $this->blockedAccountResponse($user)) {
+            return $blocked;
+        }
+
         if (! $user->email_verified_at) {
             return response()->json([
                 'message' => 'Please verify your account before login.',
@@ -157,6 +165,10 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'No account found for this email.',
             ], 404);
+        }
+
+        if ($blocked = $this->blockedAccountResponse($user)) {
+            return $blocked;
         }
 
         $verified = $this->otpService->verify($user, 'login', $validated['otp']);
@@ -256,5 +268,30 @@ class AuthController extends Controller
                 'cuisine_regions' => $user->cuisineRegions,
             ],
         ];
+    }
+
+    private function blockedAccountResponse(User $user): ?JsonResponse
+    {
+        $user->normalizeAccountStatus();
+
+        if ($user->effectiveAccountStatus() === User::ACCOUNT_STATUS_BANNED) {
+            return response()->json([
+                'message' => 'This account has been banned by an administrator.',
+            ], 403);
+        }
+
+        if ($user->effectiveAccountStatus() === User::ACCOUNT_STATUS_SUSPENDED) {
+            $message = 'This account is currently suspended.';
+
+            if ($user->suspended_until) {
+                $message = 'This account is suspended until '.$user->suspended_until->toDayDateTimeString().'.';
+            }
+
+            return response()->json([
+                'message' => $message,
+            ], 403);
+        }
+
+        return null;
     }
 }

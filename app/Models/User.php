@@ -23,6 +23,12 @@ class User extends Authenticatable
 
     public const ROLE_ADMIN = 'admin';
 
+    public const ACCOUNT_STATUS_ACTIVE = 'active';
+
+    public const ACCOUNT_STATUS_SUSPENDED = 'suspended';
+
+    public const ACCOUNT_STATUS_BANNED = 'banned';
+
     protected $keyType = 'string';
 
     public $incrementing = false;
@@ -43,6 +49,15 @@ class User extends Authenticatable
         'referral_code',
         'referred_by_user_id',
         'role',
+        'email_verified_at',
+        'account_status',
+        'suspended_until',
+        'suspension_reason',
+        'warning_count',
+        'last_warned_at',
+        'banned_at',
+        'banned_reason',
+        'last_seen_at',
         'chef_niche_id',
         'profile_picture',
         'wallet_balance',
@@ -70,6 +85,11 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'date_of_birth' => 'date',
+            'suspended_until' => 'datetime',
+            'warning_count' => 'integer',
+            'last_warned_at' => 'datetime',
+            'banned_at' => 'datetime',
+            'last_seen_at' => 'datetime',
             'wallet_balance' => 'decimal:2',
             'onboarding_completed' => 'boolean',
         ];
@@ -96,6 +116,11 @@ class User extends Authenticatable
     public function otpCodes(): HasMany
     {
         return $this->hasMany(OtpCode::class);
+    }
+
+    public function dailyActivities(): HasMany
+    {
+        return $this->hasMany(UserDailyActivity::class);
     }
 
     public function referredBy(): BelongsTo
@@ -196,5 +221,45 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Product::class, 'favorite_product_user')
             ->withTimestamps();
+    }
+
+    public function effectiveAccountStatus(): string
+    {
+        if ($this->account_status === self::ACCOUNT_STATUS_BANNED || $this->banned_at) {
+            return self::ACCOUNT_STATUS_BANNED;
+        }
+
+        if ($this->account_status === self::ACCOUNT_STATUS_SUSPENDED) {
+            if ($this->suspended_until === null || $this->suspended_until->isFuture()) {
+                return self::ACCOUNT_STATUS_SUSPENDED;
+            }
+        }
+
+        return self::ACCOUNT_STATUS_ACTIVE;
+    }
+
+    public function normalizeAccountStatus(): void
+    {
+        if (
+            $this->account_status === self::ACCOUNT_STATUS_SUSPENDED
+            && $this->suspended_until !== null
+            && $this->suspended_until->isPast()
+        ) {
+            $this->forceFill([
+                'account_status' => self::ACCOUNT_STATUS_ACTIVE,
+                'suspended_until' => null,
+                'suspension_reason' => null,
+            ])->saveQuietly();
+
+            $this->refresh();
+        }
+    }
+
+    public function isBlockedFromAccess(): bool
+    {
+        return in_array($this->effectiveAccountStatus(), [
+            self::ACCOUNT_STATUS_SUSPENDED,
+            self::ACCOUNT_STATUS_BANNED,
+        ], true);
     }
 }

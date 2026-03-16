@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AdminChefNicheController;
 use App\Http\Controllers\Api\AdminNotificationController;
 use App\Http\Controllers\Api\AdminProductController;
 use App\Http\Controllers\Api\AdminRecipeController;
+use App\Http\Controllers\Api\AdminUserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth.jwt', 'role:admin'])->prefix('admin')->group(function (): void {
@@ -35,4 +36,16 @@ Route::middleware(['auth.jwt', 'role:admin'])->prefix('admin')->group(function (
     Route::patch('/recipes/{recipe}/review', [AdminRecipeController::class, 'review'])->whereUuid('recipe');
     Route::patch('/recipes/{recipe}/features', [AdminRecipeController::class, 'updateFeatures'])->whereUuid('recipe');
     Route::delete('/recipes/{recipe}', [AdminRecipeController::class, 'destroy'])->whereUuid('recipe');
+
+    Route::get('/users', [AdminUserController::class, 'index']);
+    Route::post('/users', [AdminUserController::class, 'store']);
+    Route::get('/users/charts/growth', [AdminUserController::class, 'growthChart']);
+    Route::get('/users/charts/activity', [AdminUserController::class, 'activityChart']);
+    Route::get('/users/{user}', [AdminUserController::class, 'show'])->whereUuid('user');
+    Route::patch('/users/{user}', [AdminUserController::class, 'update'])->whereUuid('user');
+    Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->whereUuid('user');
+    Route::post('/users/{user}/warnings', [AdminUserController::class, 'warn'])->whereUuid('user');
+    Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend'])->whereUuid('user');
+    Route::post('/users/{user}/ban', [AdminUserController::class, 'ban'])->whereUuid('user');
+    Route::post('/users/{user}/activate', [AdminUserController::class, 'activate'])->whereUuid('user');
 });
