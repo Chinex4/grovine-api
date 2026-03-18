@@ -131,29 +131,34 @@ class UserProfileController extends Controller
     private function deleteUserWithRetry(User $user): void
     {
         $connection = $user->getConnectionName() ?: config('database.default');
+        $userId = $user->getKey();
 
-        for ($attempt = 0; $attempt < 2; $attempt++) {
+        for ($attempt = 0; $attempt < 4; $attempt++) {
             try {
-                $user->delete();
+                $deleted = User::query()->whereKey($userId)->delete();
+
+                if ($deleted > 0 || ! User::query()->whereKey($userId)->exists()) {
+                    return;
+                }
 
                 return;
             } catch (QueryException $exception) {
-                $isLastAttempt = $attempt === 1;
+                $isLastAttempt = $attempt === 3;
 
                 if ($isLastAttempt || ! $this->isMysqlReprepareError($exception)) {
                     throw $exception;
                 }
 
+                DB::disconnect($connection);
                 DB::purge($connection);
                 DB::reconnect($connection);
+                usleep(150000 * ($attempt + 1));
 
-                $freshUser = User::query()->find($user->id);
+                $freshUser = User::query()->find($userId);
 
                 if (! $freshUser) {
                     return;
                 }
-
-                $user = $freshUser;
             }
         }
     }
