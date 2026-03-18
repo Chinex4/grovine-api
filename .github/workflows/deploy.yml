@@ -36,27 +36,38 @@ jobs:
 
       - name: Upload code (tar over SSH)
         run: |
-          ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "mkdir -p '${{ secrets.DEPLOY_PATH }}'"
-          tar --exclude=".git" --exclude=".github" --exclude="node_modules" --exclude=".env" -czf - . \
-            | ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "tar -xzf - -C '${{ secrets.DEPLOY_PATH }}'"
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
+            -p ${{ secrets.CPANEL_PORT }} \
+            ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} \
+            "mkdir -p '${{ secrets.DEPLOY_PATH }}'"
+
+          tar --exclude=".git" \
+              --exclude=".github" \
+              --exclude="node_modules" \
+              --exclude=".env" \
+              -czf - . | \
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
+            -p ${{ secrets.CPANEL_PORT }} \
+            ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} \
+            "tar -xzf - -C '${{ secrets.DEPLOY_PATH }}'"
 
       - name: Run Laravel commands on server
         run: |
-          ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} << 'EOF'
-            set -e
-            cd "${DEPLOY_PATH}"
+          ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "
+          set -e
+          cd '${{ secrets.DEPLOY_PATH }}'
 
-            php artisan storage:link || true
-            chmod -R 775 storage bootstrap/cache || true
+          php artisan storage:link || true
+          chmod -R 775 storage bootstrap/cache || true
 
-            php artisan config:clear || true
-            php artisan route:clear || true
-            php artisan view:clear || true
+          php artisan config:clear || true
+          php artisan route:clear || true
+          php artisan view:clear || true
 
-            php artisan config:cache || true
-            php artisan route:cache || true
+          php artisan config:cache || true
+          php artisan route:cache || true
 
-            php artisan migrate --force || true
-          EOF
+          php artisan migrate --force || true
+        "
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
