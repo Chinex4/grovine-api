@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
+    Route::post('/admin/login', [AdminAuthController::class, 'login']);
     Route::post('/signup', [AuthController::class, 'signup']);
     Route::post('/verify-signup-otp', [AuthController::class, 'verifySignupOtp']);
 
@@ -11,5 +13,6 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
 
     Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
-});
 
+    Route::middleware(['auth.jwt', 'role:admin'])->post('/admin/change-password', [AdminAuthController::class, 'changePassword']);
+});

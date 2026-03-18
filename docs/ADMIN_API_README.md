@@ -30,6 +30,9 @@ This file documents every current admin API endpoint in the backend so a fronten
 
 ## Important Notes For Frontend
 
+- Admin auth is now separate from user OTP auth.
+- Admin login endpoint: `POST /api/auth/admin/login`
+- Admin password change endpoint: `POST /api/auth/admin/change-password`
 - User `status` in the admin user response is the email verification status: `verified` or `unverified`.
 - User moderation state is returned separately as `account_status`: `active`, `suspended`, or `banned`.
 - The admin template screenshot includes a "Reset Password" action, but this backend uses OTP auth, not password auth. There is currently no admin password-reset endpoint.
@@ -40,6 +43,8 @@ This file documents every current admin API endpoint in the backend so a fronten
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| POST | `/auth/admin/login` | Admin email/password login |
+| POST | `/auth/admin/change-password` | Change current admin password |
 | GET | `/admin/ads` | List ads |
 | POST | `/admin/ads` | Create ad |
 | PATCH | `/admin/ads/{ad}` | Update ad |
@@ -74,6 +79,26 @@ This file documents every current admin API endpoint in the backend so a fronten
 | POST | `/admin/users/{user}/ban` | Ban user |
 
 ## Shared Response Shapes
+
+### Admin Auth Response
+
+```json
+{
+  "message": "Admin login successful.",
+  "data": {
+    "token_type": "Bearer",
+    "access_token": "jwt-token",
+    "expires_at": "2026-03-20T10:00:00Z",
+    "user": {
+      "id": "uuid",
+      "name": "Admin User",
+      "username": "admin_user_1001",
+      "email": "admin@grovine.ng",
+      "role": "admin"
+    }
+  }
+}
+```
 
 ### Ad Object
 
@@ -239,6 +264,79 @@ This file documents every current admin API endpoint in the backend so a fronten
 ```
 
 ## Ads
+
+## Admin Auth
+
+### POST `/auth/admin/login`
+
+- Content-Type: `application/json`
+- Body:
+
+```json
+{
+  "email": "admin@grovine.ng",
+  "password": "ChangeMe123!"
+}
+```
+
+- Rules:
+  - `email` required valid email
+  - `password` required string min `8`
+- Success: returns `Admin Auth Response`
+- Invalid credentials:
+
+```json
+{
+  "message": "Invalid admin credentials."
+}
+```
+
+- Suspended admin:
+
+```json
+{
+  "message": "This admin account is suspended until Thu, Mar 19, 2026 10:00 AM."
+}
+```
+
+### POST `/auth/admin/change-password`
+
+- Auth: admin bearer token required
+- Content-Type: `application/json`
+- Body:
+
+```json
+{
+  "current_password": "ChangeMe123!",
+  "password": "NewSecret456!",
+  "password_confirmation": "NewSecret456!"
+}
+```
+
+- Rules:
+  - `current_password` required
+  - `password` required, min `8`, confirmed
+- Success:
+
+```json
+{
+  "message": "Admin password changed successfully.",
+  "data": {
+    "updated_at": "2026-03-18T10:00:00Z"
+  }
+}
+```
+
+- Failure:
+
+```json
+{
+  "message": "Current password is incorrect.",
+  "errors": {
+    "current_password": ["Current password is incorrect."]
+  }
+}
+```
 
 ### GET `/admin/ads`
 
@@ -609,6 +707,7 @@ This file documents every current admin API endpoint in the backend so a fronten
   - `onboarding_completed` optional boolean
   - `is_verified` optional boolean. Defaults to `true` on create.
   - `profile_picture` optional image max `5MB`
+  - `password` required for `role=admin`, min `8`, confirmed
 - Success: `201`, returns full `Admin User Object`
 
 ### GET `/admin/users/{user}`
@@ -623,6 +722,8 @@ This file documents every current admin API endpoint in the backend so a fronten
 - Notes:
   - changing role away from `chef` clears `chef_name`, `chef_niche_id`, and synced chef niches
   - setting `is_verified` to `false` clears `email_verified_at`
+  - `password` is only accepted for admin accounts
+  - if a user is being changed into an admin and has no existing password, a password must be supplied
 - Success: `200`, returns full `Admin User Object`
 
 ### DELETE `/admin/users/{user}`
@@ -810,3 +911,4 @@ The admin user requests added there are:
 - `Activate User`
 - `Ban User`
 - `Delete User`
+- `Admin Change Password`

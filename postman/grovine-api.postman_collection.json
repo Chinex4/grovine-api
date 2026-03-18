@@ -9,6 +9,37 @@
             "name": "Auth",
             "item": [
                 {
+                    "name": "Admin Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json?.data?.access_token) {",
+                                    "  pm.collectionVariables.set(\"admin_token\", json.data.access_token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@grovine.ng\",\n  \"password\": \"{{admin_password}}\"\n}"
+                        },
+                        "url": "{{base_url}}/api/auth/admin/login"
+                    }
+                },
+                {
                     "name": "Signup",
                     "request": {
                         "method": "POST",
@@ -1221,6 +1252,23 @@
                     "request": {
                         "method": "DELETE",
                         "url": "{{base_url}}/api/admin/users/{{managed_user_id}}"
+                    }
+                },
+                {
+                    "name": "Admin Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"current_password\": \"{{admin_password}}\",\n  \"password\": \"NewSecret456!\",\n  \"password_confirmation\": \"NewSecret456!\"\n}"
+                        },
+                        "url": "{{base_url}}/api/auth/admin/change-password"
                     }
                 }
             ]

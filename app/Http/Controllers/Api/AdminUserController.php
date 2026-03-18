@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -120,6 +121,7 @@ class AdminUserController extends Controller
             : null;
 
         $role = $validated['role'] ?? User::ROLE_USER;
+        $this->ensureAdminPasswordRules($validated, $role);
         $chefNicheIds = $this->extractChefNicheIds($validated);
 
         $user = User::query()->create([
@@ -138,7 +140,7 @@ class AdminUserController extends Controller
             'profile_picture' => $profilePicturePath,
             'onboarding_completed' => (bool) ($validated['onboarding_completed'] ?? false),
             'email_verified_at' => ($validated['is_verified'] ?? true) ? now() : null,
-            'password' => null,
+            'password' => $role === User::ROLE_ADMIN ? Hash::make((string) $validated['password']) : null,
         ]);
 
         $this->referralService->ensureUserReferralCode($user);
@@ -156,6 +158,7 @@ class AdminUserController extends Controller
     {
         $validated = $this->validateUserPayload($request, $user, true);
         $role = $validated['role'] ?? $user->role;
+        $this->ensureAdminPasswordRules($validated, $role, $user);
         $chefNicheIds = $this->extractChefNicheIds($validated);
         $payload = [];
 
@@ -179,6 +182,10 @@ class AdminUserController extends Controller
 
         if (array_key_exists('is_verified', $validated)) {
             $payload['email_verified_at'] = $validated['is_verified'] ? ($user->email_verified_at ?? now()) : null;
+        }
+
+        if (array_key_exists('password', $validated) && filled($validated['password'])) {
+            $payload['password'] = Hash::make((string) $validated['password']);
         }
 
         if ($request->hasFile('profile_picture')) {
@@ -502,6 +509,7 @@ class AdminUserController extends Controller
             'onboarding_completed' => [$partial ? 'sometimes' : 'nullable', 'boolean'],
             'is_verified' => [$partial ? 'sometimes' : 'nullable', 'boolean'],
             'profile_picture' => [$partial ? 'sometimes' : 'nullable', 'nullable', 'image', 'max:5120'],
+            'password' => [$partial ? 'sometimes' : 'nullable', 'nullable', 'string', 'min:8', 'confirmed'],
         ]);
     }
 
@@ -635,6 +643,33 @@ class AdminUserController extends Controller
 
         throw new HttpResponseException(response()->json([
             'message' => 'You cannot perform this action on your own account.',
+        ], 422));
+    }
+
+    private function ensureAdminPasswordRules(array $validated, string $role, ?User $user = null): void
+    {
+        $hasPassword = array_key_exists('password', $validated) && filled($validated['password']);
+
+        if ($role !== User::ROLE_ADMIN && $hasPassword) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Password can only be set for admin accounts.',
+                'errors' => [
+                    'password' => ['Password can only be set for admin accounts.'],
+                ],
+            ], 422));
+        }
+
+        $needsPassword = $role === User::ROLE_ADMIN && ! $hasPassword && (! $user || ! $user->password);
+
+        if (! $needsPassword) {
+            return;
+        }
+
+        throw new HttpResponseException(response()->json([
+            'message' => 'Password is required for admin accounts.',
+            'errors' => [
+                'password' => ['Password is required for admin accounts.'],
+            ],
         ], 422));
     }
 
