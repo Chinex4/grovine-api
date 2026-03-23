@@ -13,6 +13,21 @@ class AdminAuthApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_login_endpoint_handles_cors_preflight_requests(): void
+    {
+        config()->set('cors.allowed_origins', ['https://console.grovine.ng']);
+        config()->set('cors.supports_credentials', true);
+
+        $this->withHeaders([
+            'Origin' => 'https://console.grovine.ng',
+            'Access-Control-Request-Method' => 'POST',
+            'Access-Control-Request-Headers' => 'content-type,authorization',
+        ])->call('OPTIONS', '/api/auth/admin/login')
+            ->assertOk()
+            ->assertHeader('Access-Control-Allow-Origin', 'https://console.grovine.ng')
+            ->assertHeader('Access-Control-Allow-Credentials', 'true');
+    }
+
     public function test_admin_can_login_with_email_and_password(): void
     {
         $admin = User::factory()->create([
