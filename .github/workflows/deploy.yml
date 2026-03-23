@@ -55,18 +55,49 @@ jobs:
         run: |
           ssh -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "
           set -e
-          cd '${{ secrets.DEPLOY_PATH }}'
 
-          php artisan storage:link || true
+          APP_PATH='${{ secrets.DEPLOY_PATH }}'
+          LIVE_PUBLIC='/home2/grovinen/public_html/api.grovine.ng/public'
+
+          cd \"$APP_PATH\"
+
           chmod -R 775 storage bootstrap/cache || true
 
           php artisan config:clear || true
           php artisan route:clear || true
           php artisan view:clear || true
+          php artisan cache:clear || true
+
+          php artisan migrate --force || true
+
+          mkdir -p \"$LIVE_PUBLIC\"
+
+          rsync -av --delete public/ \"$LIVE_PUBLIC\"/
+
+          cat > \"$LIVE_PUBLIC/index.php\" <<'PHP'
+          <?php
+
+          use Illuminate\Foundation\Application;
+          use Illuminate\Http\Request;
+
+          define('LARAVEL_START', microtime(true));
+
+          if (file_exists(\$maintenance = __DIR__.'/../../../../apps/grovine-api/storage/framework/maintenance.php')) {
+              require \$maintenance;
+          }
+
+          require __DIR__.'/../../../../apps/grovine-api/vendor/autoload.php';
+
+          \$app = require_once __DIR__.'/../../../../apps/grovine-api/bootstrap/app.php';
+
+          \$app->handleRequest(Request::capture());
+          PHP
+
+          rm -f \"$LIVE_PUBLIC/storage\"
+          ln -sfn \"$APP_PATH/storage/app/public\" \"$LIVE_PUBLIC/storage\"
 
           php artisan config:cache || true
           php artisan route:cache || true
-
-          php artisan migrate --force || true "
+          "
     env:
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
