@@ -75,7 +75,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'OTP sent successfully.',
-            'data' => $this->otpResponsePayload($otpData['otp']->expires_at->toIso8601String(), $otpData['plain_code']),
+            'data' => $this->otpResponsePayload($otpData),
         ], 201);
     }
 
@@ -148,7 +148,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'OTP sent successfully.',
-            'data' => $this->otpResponsePayload($otpData['otp']->expires_at->toIso8601String(), $otpData['plain_code']),
+            'data' => $this->otpResponsePayload($otpData),
         ]);
     }
 
@@ -219,19 +219,24 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'OTP resent successfully.',
-            'data' => $this->otpResponsePayload($otpData['otp']->expires_at->toIso8601String(), $otpData['plain_code']),
+            'data' => $this->otpResponsePayload($otpData),
         ]);
     }
 
-    private function otpResponsePayload(string $expiresAt, string $otpCode): array
+    /**
+     * @param array{otp:\App\Models\OtpCode,plain_code:string,delivery_channel:string,uses_test_code:bool} $otpData
+     */
+    private function otpResponsePayload(array $otpData): array
     {
         $payload = [
-            'otp_expires_at' => $expiresAt,
+            'otp_expires_at' => $otpData['otp']->expires_at->toIso8601String(),
             'otp_length' => (int) config('otp.length', 5),
+            'otp_delivery_channel' => $otpData['delivery_channel'],
+            'uses_test_otp' => $otpData['uses_test_code'],
         ];
 
         if (config('otp.debug_expose_code')) {
-            $payload['otp'] = $otpCode;
+            $payload['otp'] = $otpData['plain_code'];
         }
 
         return $payload;

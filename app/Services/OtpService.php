@@ -13,7 +13,7 @@ use Throwable;
 class OtpService
 {
     /**
-     * @return array{otp:OtpCode,plain_code:string}
+     * @return array{otp:OtpCode,plain_code:string,delivery_channel:string,uses_test_code:bool}
      */
     public function issue(User $user, string $purpose): array
     {
@@ -33,7 +33,8 @@ class OtpService
             ]);
         }
 
-        $plainCode = $this->generateCode();
+        $usesTestCode = $this->shouldUseTestLoginCode($user, $purpose);
+        $plainCode = $usesTestCode ? $this->getTestLoginCode() : $this->generateCode();
 
         $otp = OtpCode::query()->create([
             'user_id' => $user->id,
@@ -42,25 +43,27 @@ class OtpService
             'expires_at' => now()->addMinutes((int) config('otp.expiry_minutes', 10)),
         ]);
 
-        try {
-            Mail::to($user->email)->send(new OtpCodeMail(
-                code: $plainCode,
-                purpose: $purpose,
-                expiresAt: $otp->expires_at,
-            ));
-        } catch (Throwable $exception) {
-            $otp->delete();
+        if (! $usesTestCode) {
+            try {
+                Mail::to($user->email)->send(new OtpCodeMail(
+                    code: $plainCode,
+                    purpose: $purpose,
+                    expiresAt: $otp->expires_at,
+                ));
+            } catch (Throwable $exception) {
+                $otp->delete();
 
-            Log::error('Failed to send Grovine OTP email', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'purpose' => $purpose,
-                'error' => $exception->getMessage(),
-            ]);
+                Log::error('Failed to send Grovine OTP email', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'purpose' => $purpose,
+                    'error' => $exception->getMessage(),
+                ]);
 
-            throw ValidationException::withMessages([
-                'otp' => ['Unable to send OTP email right now. Please try again.'],
-            ]);
+                throw ValidationException::withMessages([
+                    'otp' => ['Unable to send OTP email right now. Please try again.'],
+                ]);
+            }
         }
 
         Log::info('Grovine OTP generated', [
@@ -68,12 +71,15 @@ class OtpService
             'email' => $user->email,
             'purpose' => $purpose,
             'otp' => $plainCode,
+            'delivery_channel' => $usesTestCode ? 'fixed_test_code' : 'email',
             'expires_at' => $otp->expires_at->toIso8601String(),
         ]);
 
         return [
             'otp' => $otp,
             'plain_code' => $plainCode,
+            'delivery_channel' => $usesTestCode ? 'fixed_test_code' : 'email',
+            'uses_test_code' => $usesTestCode,
         ];
     }
 
@@ -109,5 +115,34 @@ class OtpService
         $max = (10 ** $length) - 1;
 
         return str_pad((string) random_int(0, $max), $length, '0', STR_PAD_LEFT);
+    }
+
+    private function shouldUseTestLoginCode(User $user, string $purpose): bool
+    {
+        if ($purpose !== 'login' || ! (bool) config('otp.test_login.enabled', false)) {
+            return false;
+        }
+
+        $configuredEmail = strtolower(trim((string) config('otp.test_login.email', '')));
+
+        if ($configuredEmail === '' || strtolower($user->email) !== $configuredEmail) {
+            return false;
+        }
+
+        $configuredCode = $this->getTestLoginCode();
+
+        return $configuredCode !== '';
+    }
+
+    private function getTestLoginCode(): string
+    {
+        $code = trim((string) config('otp.test_login.code', ''));
+        $length = (int) config('otp.length', 5);
+
+        if ($code === '' || strlen($code) !== $length || ! ctype_digit($code)) {
+            return '';
+        }
+
+        return $code;
     }
 }
